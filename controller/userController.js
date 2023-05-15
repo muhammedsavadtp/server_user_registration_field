@@ -3,6 +3,7 @@ const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 const express = require('express')
 const routes = express.Router();
+const bcrypt = require("bcrypt");
 
 
 routes.post("/register", upload.single("profileImage"), async (req, res) => {
