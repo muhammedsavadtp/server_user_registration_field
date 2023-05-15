@@ -4,6 +4,8 @@ const app = express();
 const cors = require("cors");
 const connectDB = require("./db/dbConfig");
 const { errorHandler, errorGenerator } = require("./error/errorHandler");
+const validateToken = require("./middleware/verifyToken");
+
 
 //routes
 const userAuth = require('./controller/userController')
@@ -17,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Logic goes here
-app.get("/",(req, res)=>{
+app.get("/",validateToken,(req, res)=>{
     res.send('hello ')
 })
 app.use("/user", userAuth);

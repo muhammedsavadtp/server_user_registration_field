@@ -1,10 +1,11 @@
-const User = require("../models/userSchema")
+const User = require("../models/userSchema");
 const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
-const express = require('express')
+const express = require("express");
 const routes = express.Router();
 const bcrypt = require("bcrypt");
-
+const jwt = require("jsonwebtoken");
+const validateToken = require("../middleware/verifyToken");
 
 routes.post("/register", upload.single("profileImage"), async (req, res) => {
   try {
@@ -27,7 +28,14 @@ routes.post("/register", upload.single("profileImage"), async (req, res) => {
 
     await newUser.save();
 
-    return res.status(201).json({ message: "User registered successfully" });
+    // Generate JWT token with a 5-day expiration
+    const token = jwt.sign({ email: newUser.email }, process.env.SECRET_KEY, {
+      expiresIn: "5d",
+    });
+
+    return res
+      .status(201)
+      .json({ message: "User registered successfully", newUser, token: token });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -48,33 +56,64 @@ routes.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    // Perform further authentication or generate a token here
+    // Generate JWT token with a 5-day expiration
+    const token = jwt.sign({ email: user.email,id: user._id }, process.env.SECRET_KEY, {
+      expiresIn: "5d",
+    });
 
-    return res.status(200).json({ message: "Login successful" });
+    return res
+      .status(200)
+      .json({ message: "Login successful", user, token: token });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
 
-routes.put("/users/:id", upload.single("profileImage"), async (req, res) => {
+routes.put(
+  "/upadateuser/:id",
+  validateToken,
+  upload.single("profileImage"),
+  async (req, res) => {
+    try {
+      const { firstName, lastName } = req.body;
+      const _id = req.params.id;
+
+      const updatedUser = {
+        firstName,
+        lastName,
+        profileImage: req.file ? req.file.path : null,
+      };
+      await User.findByIdAndUpdate(_id, updatedUser);
+
+      return res.status(200).json({ message: "User updated successfully" });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+
+// API endpoint to get user details by ID
+routes.get("/userdetails/:id", validateToken, async (req, res) => {
+  const userId = req.params.id;
+
   try {
-    const { firstName, lastName } = req.body;
-    const userId = req.params.id;
+    // Connect to the database (assuming you have a function to establish the connection)
 
-    const updatedUser = {
-      firstName,
-      lastName,
-      profileImage: req.file ? req.file.path : null,
-    };
+    // Fetch the user details from the database
+    const user = await User.findById(userId);
 
-    await User.findByIdAndUpdate(userId, updatedUser);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    return res.status(200).json({ message: "User updated successfully" });
+    // Return the user details as the API response
+    return res.status(200).json({ user });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
 
-module.exports= routes
+module.exports = routes;
