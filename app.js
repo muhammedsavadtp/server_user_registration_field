@@ -17,7 +17,7 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use("/uploads",express.static('./uploads'))
 // Logic goes here
 app.get("/",validateToken,(req, res)=>{
     res.send('hello ')
