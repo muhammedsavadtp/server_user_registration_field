@@ -33,15 +33,21 @@ const upload = multer({
   // },
 });
 
-
 // API endpoint to register user
 routes.post("/register", upload.single("image"), async (req, res) => {
   // console.log(req);
   console.log(req.body);
   // console.log(req.file);
-  const { firstName, lastName, email, password } = req.body;
-  if (!firstName || !lastName || !email || !password) {
+  const { firstName, lastName, email, password ,confirmPassword} = req.body;
+  if (!firstName || !lastName || !email || !password || !confirmPassword) {
     return res.status(400).json({ message: "All fields are required" });
+  }
+  if (confirmPassword !== password) {
+    return res.status(400).json({ message: "passwords do not match" });
+  }
+  //check email format 
+  if (!email.match(/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/)) {
+    return res.status(400).json({ message: "Invalid email address" });
   }
   try {
     const existingUser = await User.findOne({ email });
@@ -191,8 +197,6 @@ routes.put(
     }
   }
 );
-
-
 
 // API endpoint to get user details by ID
 routes.get("/userdetails/:id", validateToken, async (req, res) => {
